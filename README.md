@@ -4,10 +4,10 @@
 
 ## 在线试玩
 
-发布到 GitHub Pages 后，打开：
+打开浏览器访问：
 
 ```
-https://<你的GitHub用户名>.github.io/tiger-eat-children/
+https://ludeng170.github.io/tiger-eat-children/
 ```
 
 也可以直接把 `index.html` 下载下来双击打开，不需要联网、不需要安装任何东西。

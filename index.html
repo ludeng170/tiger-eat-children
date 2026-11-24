@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>老虎吃小孩</title>
+<style>
+  :root{
+    --bg1:#f0e2c8;
+    --bg2:#d3bb95;
+    --line:#5d4326;
+    --ink:#43301c;
+    --chalk:#f2f6d8;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:26px 16px 44px;
+    background:
+      radial-gradient(circle at 50% -12%, var(--bg1), transparent 62%),
+      radial-gradient(circle at 50% 116%, #c3a67c, transparent 58%),
+      linear-gradient(172deg, #e9dac1, #d5be99);
+    color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;
+  }
+  .app{width:100%;max-width:560px;display:flex;flex-direction:column;gap:14px}
+  header{text-align:center}
+  h1{
+    margin:0;font-size:29px;letter-spacing:6px;font-weight:700;
+    font-family:"KaiTi","STKaiti","Kaiti SC","Microsoft YaHei",serif;
+    color:#3b2917;text-shadow:0 1px 0 rgba(255,248,230,.55);
+  }
+  .sub{margin:6px 0 0;font-size:13px;color:#6b5334;opacity:.85}
+
+  .hud{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .badge{
+    padding:8px 17px;border-radius:999px;font-weight:700;font-size:14px;color:#fdf6e6;
+    letter-spacing:1px;transition:background .2s;
+    box-shadow:0 3px 9px rgba(70,45,18,.28), inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .badge.tiger{background:linear-gradient(135deg,#b5522f,#81301a)}
+  .badge.child{background:linear-gradient(135deg,#5d7688,#3c5364)}
+  .counter{font-size:14px;color:#6b5334}
+  .counter b{font-size:20px;color:#8e3f24;margin:0 3px}
+
+  .board-wrap{
+    background:
+      radial-gradient(circle at 16% 18%, rgba(255,247,228,.42), transparent 44%),
+      radial-gradient(circle at 82% 76%, rgba(96,62,28,.16), transparent 50%),
+      radial-gradient(circle at 30% 88%, rgba(96,62,28,.12), transparent 44%),
+      linear-gradient(158deg, #d9b585, #c49c6b 52%, #b38a5c);
+    border-radius:26px;
+    box-shadow:
+      inset 0 0 70px rgba(86,54,22,.34),
+      inset 0 2px 2px rgba(255,247,228,.28),
+      0 16px 36px rgba(70,45,18,.3);
+    border:1px solid rgba(88,58,24,.28);
+    line-height:0;
+    overflow:hidden;
+  }
+  svg{width:100%;height:auto;display:block;touch-action:manipulation}
+
+  .grid{fill:none;stroke:#5d4326;stroke-width:4.5;stroke-linecap:round;opacity:.82}
+  .dot-step{fill:rgba(226,240,176,.92);stroke:#4c7a3a;stroke-width:2}
+  .dot-jump{fill:rgba(244,186,170,.95);stroke:#a03c2c;stroke-width:2}
+  .sel-ring{fill:none;stroke:var(--chalk);stroke-width:5;stroke-linecap:round;stroke-dasharray:1 9;opacity:.95}
+  .eat-ring{fill:none;stroke:#c2482f;stroke-width:4;stroke-linecap:round;stroke-dasharray:2 7;opacity:.85}
+  .tiger-stone{fill:url(#gTiger);stroke:#3a3229;stroke-width:2}
+  .grass{fill:none;stroke:#6c7a45;stroke-width:2;stroke-linecap:round;opacity:.55}
+  .hit{fill:transparent;cursor:pointer}
+
+  .hint{
+    margin:0;text-align:center;font-size:13.5px;line-height:1.5;color:#6b5334;min-height:20px;
+  }
+  .controls{display:flex;gap:10px}
+  .btn{
+    flex:1;padding:11px 16px;border-radius:13px;border:1px solid #b99a6c;
+    background:linear-gradient(180deg,#fbf3e1,#f0e1c5);
+    font-family:inherit;font-size:14.5px;font-weight:600;color:#4a351d;
+    cursor:pointer;box-shadow:0 2px 4px rgba(70,45,18,.14), inset 0 1px 0 rgba(255,255,255,.7);
+    transition:transform .06s, box-shadow .2s;
+  }
+  .btn:hover{box-shadow:0 4px 9px rgba(70,45,18,.2), inset 0 1px 0 rgba(255,255,255,.7)}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.4;cursor:default;box-shadow:none}
+  .btn.primary{
+    background:linear-gradient(180deg,#b5522f,#8a3418);color:#fdf6e6;border-color:#79301a;
+    box-shadow:0 3px 8px rgba(112,44,18,.32), inset 0 1px 0 rgba(255,255,255,.2);
+  }
+
+  details.rules{
+    background:rgba(255,249,235,.5);
+    border:1px solid rgba(150,115,70,.35);
+    border-radius:14px;padding:4px 16px;font-size:13.5px;line-height:1.75;color:#4c3720;
+  }
+  details.rules summary{cursor:pointer;font-weight:700;padding:10px 0;outline:none}
+  details.rules ul{margin:0 0 12px;padding-left:20px}
+  details.rules li{margin:3px 0;opacity:.9}
+  details.rules b{color:#8e3f24}
+
+  .overlay{
+    position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
+    padding:24px;background:rgba(48,32,16,.42);backdrop-filter:blur(3px);
+  }
+  .overlay[hidden]{display:none}
+  .card{
+    width:100%;max-width:340px;border-radius:20px;padding:30px 28px 26px;text-align:center;
+    background:
+      radial-gradient(circle at 20% 14%, rgba(255,255,255,.5), transparent 46%),
+      linear-gradient(165deg,#f9efd8,#efe0c2);
+    border:1px solid #d3b787;
+    box-shadow:0 26px 70px rgba(40,24,8,.42), inset 0 1px 0 rgba(255,255,255,.7);
+    transform:rotate(-.5deg);
+  }
+  .card-icon{
+    width:70px;height:70px;margin:0 auto 15px;border-radius:50%;display:grid;place-items:center;
+    font-size:30px;font-weight:800;color:#f6edd9;
+    font-family:"KaiTi","STKaiti","Microsoft YaHei",serif;
+    background:radial-gradient(circle at 34% 28%, #9a9083, #746a5c 56%, #4a4136 100%);
+    border:2px solid #3a3229;
+    box-shadow:0 8px 18px rgba(50,34,16,.34), inset 0 -3px 7px rgba(0,0,0,.22);
+  }
+  .card-icon.child{
+    background:radial-gradient(circle at 34% 28%, #ded6c6, #b7ad9c 56%, #8a8072 100%);
+    border-color:#6f6558;color:#3f372d;
+    box-shadow:0 8px 18px rgba(50,34,16,.26), inset 0 -3px 7px rgba(0,0,0,.13);
+  }
+  .card h2{margin:0 0 8px;font-size:22px;letter-spacing:2px;font-family:"KaiTi","STKaiti","Microsoft YaHei",serif}
+  .card p{margin:0 0 22px;font-size:14px;line-height:1.65;color:#5f4a30}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>老虎吃小孩</h1>
+    <p class="sub">点击石头选中，再点目标位置移动</p>
+  </header>
+
+  <div class="hud">
+    <div class="badge tiger" id="turnBadge">老虎回合</div>
+    <div class="counter">小孩<b id="childCount">20</b>/ 20</div>
+  </div>
+
+  <div class="board-wrap">
+    <svg id="board" viewBox="0 0 500 500" role="img" aria-label="老虎吃小孩棋盘"></svg>
+  </div>
+
+  <p class="hint" id="hint"></p>
+
+  <div class="controls">
+    <button class="btn" id="undoBtn" disabled>悔棋</button>
+    <button class="btn" id="restartBtn">重新开始</button>
+  </div>
+
+  <details class="rules">
+    <summary>游戏规则</summary>
+    <ul>
+      <li>棋盘是 5×5 个交叉点，左下角为 (0,0)。</li>
+      <li>小孩共 20 个，开局分 4 堆、每堆 5 个，在 (1,1)、(1,3)、(3,1)、(3,3)。</li>
+      <li>两只老虎在 (1,2)、(3,2)，<b>老虎先走</b>。</li>
+      <li>老虎和小孩每次只能横竖走一格；小孩可以前后左右走。</li>
+      <li>小孩分开后<b>不能再叠在一起</b>，只能走到没有小孩、也没有老虎的点。</li>
+      <li>老虎跳过相邻的一个小孩、落在空点即可吃掉它（落点必须为空）。一回合最多吃一个，也可以选择不跳。</li>
+      <li>老虎把小孩吃到<b>只剩 6 个</b>即获胜。</li>
+      <li>小孩把<b>两只老虎都堵到无路可走</b>即获胜。</li>
+    </ul>
+  </details>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="card">
+    <div class="card-icon" id="cardIcon">虎</div>
+    <h2 id="cardTitle">老虎获胜</h2>
+    <p id="cardText"></p>
+    <button class="btn primary" id="playAgain">再来一局</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const SIZE = 5;
+  const WIN_LEFTOVER = 6;
+  const PAD = 62;
+  const GAP = 94;
+  const NS = 'http://www.w3.org/2000/svg';
+  const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  const START_STACKS = [[1, 1], [1, 3], [3, 1], [3, 3]];
+  const STACK_SIZE = 5;
+
+  const svg = document.getElementById('board');
+  const turnBadge = document.getElementById('turnBadge');
+  const childCountEl = document.getElementById('childCount');
+  const hintEl = document.getElementById('hint');
+  const undoBtn = document.getElementById('undoBtn');
+  const overlay = document.getElementById('overlay');
+  const cardIcon = document.getElementById('cardIcon');
+  const cardTitle = document.getElementById('cardTitle');
+  const cardText = document.getElementById('cardText');
+
+  let state;
+  let history;
+
+  const px = x => PAD + x * GAP;
+  const py = y => PAD + (SIZE - 1 - y) * GAP;
+
+  const inBoard = (x, y) => x >= 0 && x < SIZE && y >= 0 && y < SIZE;
+  const tigerAt = (x, y) => state.tigers.findIndex(t => t.x === x && t.y === y);
+  const kidsAt = (x, y) => state.kids[y][x];
+  const isFreePoint = (x, y) =>
+    inBoard(x, y) && state.kids[y][x] === 0 && tigerAt(x, y) < 0;
+
+  function totalKids() {
+    return state.kids.reduce((sum, row) => sum + row.reduce((a, b) => a + b, 0), 0);
+  }
+
+  function childMovesFrom(x, y) {
+    if (kidsAt(x, y) <= 0) return [];
+    const moves = [];
+    for (const [dx, dy] of DIRS) {
+      const nx = x + dx, ny = y + dy;
+      if (!inBoard(nx, ny)) continue;
+      if (tigerAt(nx, ny) >= 0) continue;
+      if (state.kids[ny][nx] > 0) continue; // 分开后不能叠在一起
+      moves.push({ x: nx, y: ny });
+    }
+    return moves;
+  }
+
+  function tigerMovesFrom(x, y) {
+    const steps = [];
+    const jumps = [];
+    for (const [dx, dy] of DIRS) {
+      const ax = x + dx, ay = y + dy;
+      if (!inBoard(ax, ay)) continue;
+      if (isFreePoint(ax, ay)) {
+        steps.push({ x: ax, y: ay });
+      } else if (state.kids[ay][ax] > 0) {
+        const lx = x + 2 * dx, ly = y + 2 * dy;
+        if (isFreePoint(lx, ly)) {
+          jumps.push({ to: { x: lx, y: ly }, eat: { x: ax, y: ay } });
+        }
+      }
+    }
+    return { steps, jumps };
+  }
+
+  function childHasMove() {
+    for (let y = 0; y < SIZE; y++)
+      for (let x = 0; x < SIZE; x++)
+        if (state.kids[y][x] > 0 && childMovesFrom(x, y).length) return true;
+    return false;
+  }
+
+  function tigerHasMove() {
+    return state.tigers.some(t => {
+      const m = tigerMovesFrom(t.x, t.y);
+      return m.steps.length > 0 || m.jumps.length > 0;
+    });
+  }
+
+  function findMove(sel, x, y) {
+    if (sel.type === 'child') {
+      return childMovesFrom(sel.x, sel.y).some(p => p.x === x && p.y === y)
+        ? { kind: 'child' }
+        : null;
+    }
+    const m = tigerMovesFrom(sel.x, sel.y);
+    if (m.steps.some(p => p.x === x && p.y === y)) return { kind: 'step' };
+    const jump = m.jumps.find(j => j.to.x === x && j.to.y === y);
+    return jump ? { kind: 'jump', jump } : null;
+  }
+
+  /* ---------- 渲染 ---------- */
+
+  function add(tag, attrs) {
+    const node = document.createElementNS(NS, tag);
+    for (const key in attrs) node.setAttribute(key, attrs[key]);
+    svg.appendChild(node);
+    return node;
+  }
+
+  const PEBBLE_COLORS = ['#cdc5b6', '#c0b6a5', '#d4cbbb', '#b6ab99', '#c8bda9'];
+  const PEBBLE_LAYOUT = {
+    1: [[0, 0]],
+    2: [[-7, 2], [7, -2]],
+    3: [[-8, 5], [8, 5], [0, -8]],
+    4: [[-7, -6], [7, -6], [-7, 8], [7, 8]],
+    5: [[-8, -6], [8, -6], [-8, 8], [8, 8], [0, 1]],
+  };
+
+  function mulberry32(seed) {
+    let a = seed | 0;
+    return function () {
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function blobPath(cx, cy, r, seed) {
+    const rnd = mulberry32(seed);
+    const n = 10;
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2;
+      const rr = r * (0.86 + rnd() * 0.24);
+      pts.push([cx + Math.cos(ang) * rr, cy + Math.sin(ang) * rr]);
+    }
+    const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+    const start = mid(pts[n - 1], pts[0]);
+    let d = 'M ' + start[0].toFixed(1) + ' ' + start[1].toFixed(1);
+    for (let i = 0; i < n; i++) {
+      const p = pts[i];
+      const m = mid(p, pts[(i + 1) % n]);
+      d += ' Q ' + p[0].toFixed(1) + ' ' + p[1].toFixed(1) +
+        ' ' + m[0].toFixed(1) + ' ' + m[1].toFixed(1);
+    }
+    return d + ' Z';
+  }
+
+  function drawDefs() {
+    const defs = add('defs', {});
+    defs.innerHTML =
+      '<radialGradient id="gTiger" cx="34%" cy="28%" r="82%">' +
+        '<stop offset="0%" stop-color="#9c9284"/>' +
+        '<stop offset="55%" stop-color="#756b5d"/>' +
+        '<stop offset="100%" stop-color="#494035"/>' +
+      '</radialGradient>';
+  }
+
+  function drawDirt() {
+    const rnd = mulberry32(20240317);
+    for (let i = 0; i < 28; i++) {
+      add('circle', {
+        cx: (14 + rnd() * 472).toFixed(1),
+        cy: (14 + rnd() * 472).toFixed(1),
+        r: (0.8 + rnd() * 1.7).toFixed(1),
+        fill: 'rgba(84,54,22,.12)',
+      });
+    }
+    const tufts = [
+      ['M34 474 q-5 -12 -10 -17', 'M38 476 q0 -14 1 -21', 'M42 474 q5 -11 10 -16'],
+      ['M462 28 q5 12 10 17', 'M466 26 q0 14 -1 21', 'M470 28 q-5 11 -10 16'],
+    ];
+    for (const blades of tufts)
+      for (const d of blades) add('path', { d, class: 'grass' });
+  }
+
+  function drawGrid() {
+    const rnd = mulberry32(20240301);
+
+    // 一条略微弯的手划线：从 a 到 b，中点垂直偏移一点
+    function strokePath(x1, y1, x2, y2) {
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2;
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.hypot(dx, dy) || 1;
+      const off = (rnd() * 2 - 1) * 2.8;
+      const cx = mx + (dy / len) * off;
+      const cy = my - (dx / len) * off;
+      return 'M ' + x1.toFixed(1) + ' ' + y1.toFixed(1) +
+        ' Q ' + cx.toFixed(1) + ' ' + cy.toFixed(1) +
+        ' ' + x2.toFixed(1) + ' ' + y2.toFixed(1);
+    }
+
+    for (let i = 0; i < SIZE; i++) {
+      const y = py(i);
+      add('path', {
+        d: strokePath(
+          px(0) - 2 - rnd() * 4,
+          y + (rnd() * 2 - 1),
+          px(SIZE - 1) + 2 + rnd() * 4,
+          y + (rnd() * 2 - 1)
+        ),
+        class: 'grid',
+      });
+
+      const x = px(i);
+      add('path', {
+        d: strokePath(
+          x + (rnd() * 2 - 1),
+          py(0) - 2 - rnd() * 4,
+          x + (rnd() * 2 - 1),
+          py(SIZE - 1) + 2 + rnd() * 4
+        ),
+        class: 'grid',
+      });
+    }
+  }
+
+  function drawTiger(x, y, idx) {
+    const cx = px(x), cy = py(y);
+    const r = idx === 0 ? 26 : 28;
+    const d = blobPath(cx, cy, r, (x * 73 + y * 37 + idx * 19 + 5) | 0);
+    add('path', { d, fill: 'rgba(50,32,14,.32)', transform: 'translate(2.2,3)' });
+    add('path', { d, class: 'tiger-stone' });
+    add('ellipse', {
+      cx: (cx - r * 0.34).toFixed(1), cy: (cy - r * 0.4).toFixed(1),
+      rx: (r * 0.3).toFixed(1), ry: (r * 0.18).toFixed(1),
+      fill: 'rgba(255,255,255,.16)',
+      transform: 'rotate(-28 ' + (cx - r * 0.34) + ' ' + (cy - r * 0.4) + ')',
+    });
+  }
+
+  function drawKids(x, y, count) {
+    const cx = px(x), cy = py(y);
+    const layout = PEBBLE_LAYOUT[Math.min(count, 5)];
+    const rnd = mulberry32((x * 53 + y * 97 + count * 7 + 11) | 0);
+    const base = count === 1 ? 8 : count === 2 ? 7 : count === 3 ? 6.2 : 5.5;
+    layout.forEach((pos, i) => {
+      const bx = cx + pos[0], by = cy + pos[1];
+      const rx = base * (0.86 + rnd() * 0.26);
+      const ry = base * (0.86 + rnd() * 0.26);
+      const rot = (rnd() * 70 - 35).toFixed(1);
+      const spin = 'rotate(' + rot + ' ' + bx.toFixed(1) + ' ' + by.toFixed(1) + ')';
+      add('ellipse', {
+        cx: (bx + 1.4).toFixed(1), cy: (by + 2.1).toFixed(1),
+        rx: rx.toFixed(1), ry: ry.toFixed(1),
+        fill: 'rgba(52,34,16,.3)', transform: spin,
+      });
+      add('ellipse', {
+        cx: bx.toFixed(1), cy: by.toFixed(1),
+        rx: rx.toFixed(1), ry: ry.toFixed(1),
+        fill: PEBBLE_COLORS[i % PEBBLE_COLORS.length],
+        stroke: '#7b7060', 'stroke-width': 1.3, transform: spin,
+      });
+      add('ellipse', {
+        cx: (bx - rx * 0.32).toFixed(1), cy: (by - ry * 0.34).toFixed(1),
+        rx: (rx * 0.36).toFixed(1), ry: (ry * 0.24).toFixed(1),
+        fill: 'rgba(255,255,255,.5)',
+      });
+    });
+  }
+
+  function render() {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    drawDefs();
+    drawDirt();
+    drawGrid();
+
+    const sel = state.selected;
+    let selMoves = null;
+    if (sel && !state.winner) selMoves = findMoveSet(sel);
+
+    if (selMoves) {
+      for (const p of selMoves.steps)
+        add('circle', { cx: px(p.x), cy: py(p.y), r: 10, class: 'dot-step' });
+      for (const j of selMoves.jumps)
+        add('circle', { cx: px(j.to.x), cy: py(j.to.y), r: 10, class: 'dot-jump' });
+    }
+
+    for (let y = 0; y < SIZE; y++) {
+      for (let x = 0; x < SIZE; x++) {
+        const ti = tigerAt(x, y);
+        if (ti >= 0) drawTiger(x, y, ti);
+        else if (state.kids[y][x] > 0) drawKids(x, y, state.kids[y][x]);
+      }
+    }
+
+    if (selMoves) {
+      for (const j of selMoves.jumps)
+        add('circle', { cx: px(j.eat.x), cy: py(j.eat.y), r: 24, class: 'eat-ring' });
+      if (sel) {
+        add('circle', {
+          cx: px(sel.x), cy: py(sel.y),
+          r: sel.type === 'tiger' ? 34 : 24,
+          class: 'sel-ring',
+        });
+      }
+    }
+
+    for (let y = 0; y < SIZE; y++)
+      for (let x = 0; x < SIZE; x++)
+        add('circle', {
+          cx: px(x), cy: py(y), r: GAP * 0.46,
+          class: 'hit', 'data-x': x, 'data-y': y,
+        });
+  }
+
+  function findMoveSet(sel) {
+    if (sel.type === 'tiger') {
+      const m = tigerMovesFrom(sel.x, sel.y);
+      return { steps: m.steps, jumps: m.jumps };
+    }
+    return { steps: childMovesFrom(sel.x, sel.y), jumps: [] };
+  }
+
+  /* ---------- 交互 ---------- */
+
+  function onPoint(x, y) {
+    if (state.winner) return;
+    const sel = state.selected;
+
+    if (sel && sel.x === x && sel.y === y) {
+      state.selected = null;
+      render(); updateHud();
+      return;
+    }
+
+    if (sel) {
+      const move = findMove(sel, x, y);
+      if (move) { commit(sel, x, y, move); return; }
+    }
+
+    if (state.turn === 'tiger') {
+      if (tigerAt(x, y) >= 0) {
+        const m = tigerMovesFrom(x, y);
+        state.selected = (m.steps.length || m.jumps.length) ? { type: 'tiger', x, y } : null;
+      } else {
+        state.selected = null;
+      }
+    } else {
+      if (kidsAt(x, y) > 0 && childMovesFrom(x, y).length) {
+        state.selected = { type: 'child', x, y };
+      } else {
+        state.selected = null;
+      }
+    }
+    render(); updateHud();
+  }
+
+  function snapshot() {
+    return {
+      kids: state.kids.map(row => row.slice()),
+      tigers: state.tigers.map(t => ({ x: t.x, y: t.y })),
+      turn: state.turn,
+      eaten: state.eaten,
+    };
+  }
+
+  function commit(sel, x, y, move) {
+    history.push(snapshot());
+    state.notice = '';
+
+    if (move.kind === 'child') {
+      state.kids[sel.y][sel.x]--;
+      state.kids[y][x]++;
+      state.selected = null;
+      state.turn = 'tiger';
+      if (!tigerHasMove()) { finish('children'); return; }
+    } else {
+      const i = tigerAt(sel.x, sel.y);
+      state.tigers[i] = { x, y };
+      if (move.kind === 'jump') {
+        state.kids[move.jump.eat.y][move.jump.eat.x]--;
+        state.eaten++;
+      }
+      state.selected = null;
+      if (totalKids() <= WIN_LEFTOVER) { finish('tiger'); return; }
+
+      state.turn = 'child';
+      if (!childHasMove()) {
+        state.notice = '小孩无子可走，本回合跳过';
+        state.turn = 'tiger';
+        if (!tigerHasMove()) { finish('children'); return; }
+      }
+    }
+    render(); updateHud();
+  }
+
+  function finish(who) {
+    state.winner = who;
+    state.selected = null;
+    render(); updateHud();
+
+    cardIcon.textContent = who === 'tiger' ? '虎' : '堵';
+    cardIcon.className = 'card-icon' + (who === 'children' ? ' child' : '');
+    cardTitle.textContent = who === 'tiger' ? '老虎获胜' : '小孩获胜';
+    cardText.textContent = who === 'tiger'
+      ? '小孩只剩下 ' + totalKids() + ' 个，老虎赢得比赛。'
+      : '两只老虎都被堵得无路可走，小孩赢得比赛。';
+    overlay.hidden = false;
+  }
+
+  function updateHud() {
+    childCountEl.textContent = totalKids();
+
+    if (state.winner) {
+      const side = state.winner === 'tiger' ? 'tiger' : 'child';
+      turnBadge.textContent = side === 'tiger' ? '老虎获胜' : '小孩获胜';
+      turnBadge.className = 'badge ' + side;
+    } else {
+      turnBadge.textContent = state.turn === 'tiger' ? '老虎回合' : '小孩回合';
+      turnBadge.className = 'badge ' + state.turn;
+    }
+
+    undoBtn.disabled = history.length === 0;
+    hintEl.textContent = hintText();
+  }
+
+  function hintText() {
+    if (state.winner) return '';
+    if (state.notice) return state.notice;
+    const sel = state.selected;
+    if (state.turn === 'tiger') {
+      if (sel) return '已选中老虎：绿点走一格，红点跳吃（红圈是被吃的石子）';
+      return '点一下大石头（老虎）选中它：绿点 = 走一格，红点 = 跳吃';
+    }
+    if (sel) return '已选中这堆石子：点击绿点移走一颗';
+    return '点一堆小石子，把一颗移到相邻的空点（石子不能叠在一起）';
+  }
+
+  /* ---------- 控制 ---------- */
+
+  function undo() {
+    if (!history.length) return;
+    const snap = history.pop();
+    state.kids = snap.kids;
+    state.tigers = snap.tigers;
+    state.turn = snap.turn;
+    state.eaten = snap.eaten;
+    state.winner = null;
+    state.selected = null;
+    state.notice = '';
+    overlay.hidden = true;
+    render(); updateHud();
+  }
+
+  function newGame() {
+    const kids = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+    for (const [x, y] of START_STACKS) kids[y][x] = STACK_SIZE;
+    state = {
+      kids,
+      tigers: [{ x: 1, y: 2 }, { x: 3, y: 2 }],
+      turn: 'tiger',
+      eaten: 0,
+      selected: null,
+      winner: null,
+      notice: '',
+    };
+    history = [];
+    overlay.hidden = true;
+    render(); updateHud();
+  }
+
+  svg.addEventListener('click', e => {
+    const target = e.target.closest('[data-x]');
+    if (!target) return;
+    onPoint(Number(target.getAttribute('data-x')), Number(target.getAttribute('data-y')));
+  });
+
+  undoBtn.addEventListener('click', undo);
+  document.getElementById('restartBtn').addEventListener('click', newGame);
+  document.getElementById('playAgain').addEventListener('click', newGame);
+
+  newGame();
+})();
+</script>
+</body>
+</html>

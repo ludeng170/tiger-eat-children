@@ -1,0 +1,7 @@
+# 测试/临时文件（以下划线开头的文件不进仓库）
+_*
+
+# 系统文件
+Thumbs.db
+desktop.ini
+.DS_Store
